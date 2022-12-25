@@ -1,0 +1,122 @@
+main:
+    irmovq stack,%rsp   #Setting the stacking point for %rsp
+    irmovq stack,%rbp   #Setting the stacking point for %rbp
+    
+    ### 1.c_code: res = 0 ###
+    irmovq $00, %r12    # <--- Enter NUMBER here! Replace $00 with any number <--- #
+
+    irmovq $0,  %rcx    #RESULT VALUE (SQUAREROOT VALUE) TO %rcx = FINAL RESULT
+    irmovq $1,  %rdx    #SETTING BIT VALUE TO -> %rdx
+    
+    irmovq $1,  %r8     #SETTING VALUE FOR CLOCK COUNT FOR BIT SHIFTING TO %r8
+    pushq %rdx          #BITSHIFTING BEFORE HAND BT ONE AND PUSHIGN THE VALUE TO MEMORY = %r8 -> %rsp
+    #(DOING 1 BITSHIFTING BEFOREHAND FOR CONVENIENCE RESET FO THE BIT SHIFTING IS DOWN BELLOW)
+
+    
+    ### 2.C_CODE: bit = 1<<16 ###
+bit_shifting_by_16:     #(DOING BIT SHIFTING TO THE LEFT BY 1) * 16     
+    irmovq $16, %r9
+    addq   %r8, %r10    
+    addq   %rdx, %rdx
+    pushq  %rdx
+    subq   %r10, %r9
+    jne    bit_shifting_by_16
+    
+    ### 3.C_CODE: While (bit > num){
+    #                bit >>= 2;
+    #                }              ####
+while_bit_shift_2:      #(DOING BIT SHIFTING TO THE RIGHT BY 2) * (BIT VALUE <= (NUMBER)): RETURN BIT VALUE < (NUMBER)
+    rrmovq %r12, %r13   #SETTING (NUMBER) TO -> %r13
+    irmovq $16, %r9     #SETTING %r9 VALUE TO $16 TO MOVE %rsp>
+    mrmovq (%rsp), %rdx #SETTING BIT VALUES FROM MEMORY TO %rdx
+    addq %r9, %rsp      #MOVE %rsp DOWNWARD BY 2 (BIT SHIFTING TO THE RIGHT BY 2)
+    rrmovq %rdx, %r14   
+    subq %r13, %rdx     #COMPARE BIT VALUE AND (NUMBER)
+    jg  while_bit_shift_2
+    rrmovq %r14, %rdx   #RETURN: BIT VALIE <= (NUMBER)
+    
+    irmovq $-16, %r9    #SETTING %r9 VALUE TO $-16 TO MOVE %rsp>
+    addq %r9, %rsp      #MOVE %rsp UPWARD BY 2
+    
+    
+    ### 4.C_CODE: While (bit != 0) {                    4a
+    #                if (num >= res + bit) {            4b
+    #                    num = num + (res + bit); {     4c
+    #                    res = (res >> 1) + bit;        4d
+    #                    }  
+    #                    else {                         4e
+    #                        res >>= 1;                 4f
+    #                    }
+    #                    bit >>= 2;                     4g
+    #                }                              ###
+    
+while_main_loop:
+    addq %rdx, %rdx     # CHICK While loop CONDITION IF  bit == 0:      4a
+    je if_bit_is_zero     # IF BIT == 0 JUMP TO Bit_is_zero FINCTING TO END CODE EXECUTION
+                        #AFTER bit == 0 TESTING 
+    rrmovq %r14, %rdx   #SETTING BACK THE CORRECT BIT VALUE TO %rdx  (AFTER EVETY bit==0 TEST)
+    
+    ### if (num >= res + bit) ####                      4b
+    addq %rcx, %rdx
+    subq %rdx, %r12
+    rrmovq %r14, %rdx
+    jge if_number_is_bigger     # JUMP TO if (num >= res + bit) == true  4b 
+  
+  ###                    else {                         4e
+    #                        res >>= 1;                 4f
+    #                    }             ###     Res SHIFTING TO RINGT BY ONE
+    irmovq $0, %r11     # DIVISION RESULT = res = %rcx
+    irmovq $2, %r12     # SHIFT 1 TO THE RIGHT = DIVIDE BY 2
+shift_start:
+    subq %r12, %rcx     # MINUTS 2 FROM RESULT
+    jl after_else       # IF RESULT VALUE IS LESS THAN 0 ...
+    addq %r8, %r11      # ADD 1 TO DIVISION VALUE
+    jmp shift_start
+after_else:             # IF RES VALUE IS (-), CHANGE IT TO 0 
+    rrmovq %r11, %rcx
+    
+  ###                    bit >>= 2;                     4g
+    #                }              ###
+after_if:               # EXECUTE AFTER EVERY if{} AND else{}
+    mrmovq (%rsp), %rdx
+    addq %r9, %rsp
+    rrmovq %rdx, %r14
+    rrmovq %r13, %r12
+    jmp while_main_loop
+    
+ 
+  ### num = num + (res + bit); {     4c
+    # res = (res >> 1) + bit;        4d
+    # }                          ###
+if_number_is_bigger:
+    addq %rcx, %rdx     # res + bit
+    subq %rdx, %r13     # num = num (res + bit)     4c    
+    rrmovq %r14, %rdx
+    irmovq $0, %r11     # DIVISION RESULT = res = %rcx
+    irmovq $2, %r12     # SHIFTING BY ONE = DIVIDE BY $2
+
+res_shift_begin:
+    subq %r12, %rcx     # MINUS TO RESULTS 
+    jl first_res_0
+    jle new_res
+    addq %r8, %r11
+    jmp res_shift_begin
+new_res:
+    addq %r8, %r11
+    rrmovq %r11, %rcx
+    addq %rdx, %rcx
+    jmp after_if
+first_res_0:
+    irmovq $0, %rcx     # AFTER FIRST SHIFTING IN RES IT IS STILL 0
+    addq %rdx, %rcx     # ADD BIT (16) TO RES FROR THE THE FIRST TIME
+    irmovq $16, %r9    
+    mrmovq (%rsp), %rdx
+    addq %r9, %rsp
+    jmp after_if
+    
+if_bit_is_zero:
+    halt
+.pos 0x400
+stack:
+
+
