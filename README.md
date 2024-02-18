@@ -1,4 +1,4 @@
-# Squire Root (Assembly Y86-64)
+# Square Root (Assembly Y86-64)
 >+ ### About This Project 
 >> This is a squire root calculator made with assembly Y86-64. Which will calculate the squire root of your desired number.       
 In this project I collaborated with @valtteri98. We wanted to learn a low-level coding language to get a richer understanding of the underlying computer architecture.
